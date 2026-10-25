@@ -1,0 +1,31 @@
+name: test
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  install:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, macos-15-intel, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Homebrew on Linux
+        if: runner.os == 'Linux'
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
+      - name: Tap this repository
+        run: |
+          mkdir -p "$(brew --repository)/Library/Taps/mzmzeee"
+          ln -s "$GITHUB_WORKSPACE" "$(brew --repository)/Library/Taps/mzmzeee/homebrew-tap"
+      - run: brew audit --strict --online --formula mzmzeee/tap/a-stack
+      - run: brew install --formula mzmzeee/tap/a-stack
+      - run: brew test mzmzeee/tap/a-stack
+      - run: a-stack version
